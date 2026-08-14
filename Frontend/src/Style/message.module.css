@@ -24,6 +24,21 @@ color: #9ca3af;
   transition: all 0.2s ease;
 }
 
+.uploadSpinner {
+  width: 55px;
+  height: 55px;
+  border: 5px solid #e5e7eb;
+  border-top: 5px solid #333;
+  border-radius: 50%;
+  animation: uploadSpin 0.8s linear infinite;
+}
+
+@keyframes uploadSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .uploadButton:hover {
   transform: translateY(-2px);
   border-style: solid;

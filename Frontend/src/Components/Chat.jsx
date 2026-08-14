@@ -14,6 +14,7 @@ function Chat() {
   const [chats, setChats] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedChat, setSelectedChat] = useState(null);
+  const [uploading, setUploading] = useState(false);
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
   // Fetch messages
@@ -189,74 +190,75 @@ function Chat() {
   };
 
   const handleUploadPDF = async (e) => {
-  const file = e.target.files[0];
+    const file = e.target.files[0];
 
-  if (!file) return;
+    if (!file) return;
 
-  if (file.type !== "application/pdf") {
-    setMessages((prev) => [
-      ...prev,
-      {
-        _id: Date.now(),
-        role: "assistant",
-        text: "⚠️ Please upload a PDF file.",
-      },
-    ]);
+    if (file.type !== "application/pdf") {
+      setMessages((prev) => [
+        ...prev,
+        {
+          _id: Date.now(),
+          role: "assistant",
+          text: "⚠️ Please upload a PDF file.",
+        },
+      ]);
 
-    e.target.value = "";
-    return;
-  }
-
-  setLoading(true);
-
-  try {
-    const formData = new FormData();
-
-    formData.append("file", file);
-
-    if (chatId) {
-      formData.append("chatId", chatId);
+      e.target.value = "";
+      return;
     }
 
-    const response = await fetch(`${API_URL}/api/upload`, {
-      method: "POST",
-      body: formData,
-    });
+    setLoading(true);
+    setUploading(true);
 
-    const data = await response.json();
+    try {
+      const formData = new FormData();
 
-    if (!response.ok) {
-      throw new Error(data.message || "PDF upload failed.");
+      formData.append("file", file);
+
+      if (chatId) {
+        formData.append("chatId", chatId);
+      }
+
+      const response = await fetch(`${API_URL}/api/upload`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "PDF upload failed.");
+      }
+
+      const newChatId = data.chatId;
+
+      // Save current chat
+      setChatId(newChatId);
+      sessionStorage.setItem("chatId", newChatId);
+
+      // Refresh sidebar
+      await fetchChats();
+
+      // Load PDF upload messages from MongoDB
+      await fetchMessages(newChatId);
+    } catch (err) {
+      console.error(err);
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          _id: Date.now(),
+          role: "assistant",
+          text: `⚠️ ${err.message || "Failed to upload PDF."}`,
+        },
+      ]);
+    } finally {
+      setLoading(false);
+      setUploading(false);
+      e.target.value = "";
     }
-
-    const newChatId = data.chatId;
-
-    // Save current chat
-    setChatId(newChatId);
-    sessionStorage.setItem("chatId", newChatId);
-
-    // Refresh sidebar
-    await fetchChats();
-
-    // Load PDF upload messages from MongoDB
-    await fetchMessages(newChatId);
-
-  } catch (err) {
-    console.error(err);
-
-    setMessages((prev) => [
-      ...prev,
-      {
-        _id: Date.now(),
-        role: "assistant",
-        text: `⚠️ ${err.message || "Failed to upload PDF."}`,
-      },
-    ]);
-  } finally {
-    setLoading(false);
-    e.target.value = "";
-  }
-};
+  };
 
   return (
     <div className={style.container}>
@@ -292,11 +294,12 @@ function Chat() {
           <h2>DocuChat AI</h2>
         </div>
         <div className={style.messages}>
-         <Message
-  messages={messages}
-  isTyping={loading}
-  onUploadPDF={() => fileInputRef.current?.click()}
-/>
+          <Message
+            messages={messages}
+            isTyping={loading}
+            uploading={uploading}
+            onUploadPDF={() => fileInputRef.current?.click()}
+          />
         </div>
 
         <form className={style.inputArea}>
@@ -325,7 +328,7 @@ function Chat() {
             onClick={handleSubmit}
             disabled={!chat.trim() || loading}
           >
-            {loading ? "Generating..." : "Send"}
+            {uploading ? "Uploading..." : loading ? "Generating..." : "Send"}
           </button>
         </form>
       </main>

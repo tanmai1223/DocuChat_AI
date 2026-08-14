@@ -88,17 +88,17 @@ export const uploadPDF = async (req, res) => {
       pdfUploaded: true,
     });
     await Message.create([
-  {
-    chatId,
-    text: `📄 ${req.file.originalname}`,
-    role: "user",
-  },
-  {
-    chatId,
-    text: "PDF uploaded successfully! Start asking questions.",
-    role: "assistant",
-  },
-]);
+      {
+        chatId,
+        text: `📄 ${req.file.originalname}`,
+        role: "user",
+      },
+      {
+        chatId,
+        text: "PDF uploaded successfully! Start asking questions.",
+        role: "assistant",
+      },
+    ]);
 
     res.status(200).json({
       message: "PDF uploaded and indexed successfully",
@@ -135,6 +135,10 @@ export const postQuery = async (req, res) => {
     console.log("User question:", query);
     console.log("Chat:", chatId);
 
+    const history = await Message.find({ chatId })
+      .sort({ createdAt: 1 })
+      .limit(10);
+
     // 1. Create embedding for question
     const embeddings = new GoogleGenerativeAIEmbeddings({
       apiKey: process.env.GOOGLE_API_KEY,
@@ -166,7 +170,14 @@ export const postQuery = async (req, res) => {
       .map((point) => point.payload.text)
       .join("\n\n");
 
+    const conversation = history
+      .map((message) => {
+        return `${message.role}: ${message.text}`;
+      })
+      .join("\n");
+
     // 4. Ask Gemini
+
     const model = new ChatGoogleGenerativeAI({
       apiKey: process.env.GOOGLE_API_KEY,
       model: "gemini-3.1-flash-lite",
@@ -176,16 +187,26 @@ export const postQuery = async (req, res) => {
     const response = await model.invoke(`
 You are a PDF question-answering assistant.
 
-Answer the user's question using ONLY the information
-provided in the context.
+Answer the user's question using the provided PDF context
+and the previous conversation when necessary to understand
+references such as "it", "that", "this", "they", etc.
 
-If the answer is not present in the context, say:
-"I couldn't find the answer in the provided PDF."
+IMPORTANT:
+- The PDF context is the source of truth.
+- Do not use outside knowledge to answer factual questions.
+- Previous conversation may be used to understand what the user
+  is referring to.
+- If the information needed to answer is not present in the
+  PDF context or previous conversation, say:
+  "I couldn't find the answer in the provided PDF."
 
-Context:
+Previous conversation:
+${conversation}
+
+PDF Context:
 ${context}
 
-Question:
+Current Question:
 ${query}
 `);
 
