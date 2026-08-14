@@ -12,6 +12,7 @@ db();
 
 const allowedOrigins = [
   "http://localhost:5173",
+  "https://docuchatmern.netlify.app"
 ];
 
 app.use(cors({ origin: allowedOrigins }));
