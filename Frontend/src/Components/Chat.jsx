@@ -228,6 +228,7 @@ function Chat() {
       const data = await response.json();
 
       if (!response.ok) {
+        alert(data.message);
         throw new Error(data.message || "PDF upload failed.");
       }
 
