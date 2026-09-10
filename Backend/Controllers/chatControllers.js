@@ -5,7 +5,7 @@ export const getMessages = async (req, res) => {
   try {
     const messages = await Message.find({
       chatId: req.params.id,
-    }).sort({ createdAt: 1 });
+    }).sort({ createdAt: 1, _id: 1 });
     res.json({
       success: true,
       data: messages,
