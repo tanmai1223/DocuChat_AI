@@ -219,16 +219,16 @@ function Chat() {
       if (chatId) {
         formData.append("chatId", chatId);
       }
-alert("1. About to send upload");
+// alert("1. About to send upload");
       const response = await fetch(`${API_URL}/api/upload`, {
         method: "POST",
         body: formData,
       });
-  alert("2. Response received: " + response.status);
+  // alert("2. Response received: " + response.status);
       const data = await response.json();
- alert("3. Response data: " + JSON.stringify(data));
+ // alert("3. Response data: " + JSON.stringify(data));
       if (!response.ok) {
-       alert("4. Server error: " + data.message);
+      // alert("4. Server error: " + data.message);
         throw new Error(data.message || "PDF upload failed.");
       }
 
@@ -245,7 +245,7 @@ alert("1. About to send upload");
       await fetchMessages(newChatId);
     } catch (err) {
       console.error(err);
-alert("5. CATCH: " + err.message);
+//alert("5. CATCH: " + err.message);
       setMessages((prev) => [
         ...prev,
         {
